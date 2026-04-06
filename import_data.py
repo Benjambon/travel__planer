@@ -58,12 +58,10 @@ def import_avec_dates_bson():
                f"daily=temperature_2m_max,precipitation_sum,weathercode&timezone=auto")
 
         try:
-            # Limitation du debit : pause de 2 secondes entre les villes
             time.sleep(2)
 
             response = requests.get(url)
 
-            # Gestion du code 429 (Too Many Requests)
             if response.status_code == 429:
                 print("Limite API atteinte, attente de 30 secondes...")
                 time.sleep(30)
