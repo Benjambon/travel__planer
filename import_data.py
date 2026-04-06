@@ -11,7 +11,7 @@ load_dotenv("mdp.env")
 uri = os.getenv("MONGO_URI")
 
 if not uri:
-    raise ValueError("MONGO_URI introuvable dans mdp.env")
+    raise ValueError("MONGO_URI introuvable")
 
 client = MongoClient(uri, tlsCAFile=certifi.where())
 db = client['vacances_meteo']
