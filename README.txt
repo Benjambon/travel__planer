@@ -6,3 +6,4 @@ import_daily.py -> programme d'import utilisé avec le plannificateur de tache p
 
 requete.py -> programme de test de requete, permet de tester le bon fonctionnement des requete et les performances de la base de donnée
 
+Pour tester l'application déployer, rdv sur le site suivant : https://travelplaner-zbx4hfmxan49srm3z3daut.streamlit.app/
