@@ -81,7 +81,7 @@ def get_base_predictions(month_idx, selected_weathers):
                 "coef": coef,
                 "history": hist_df
             })
-    return resultsgit status
+    return results
 
 
 def filter_and_score(base_data, temp_range):
