@@ -1,18 +1,27 @@
 import os
 import json
 import time
+import streamlit as st
 from dotenv import load_dotenv
 import requests
 from pymongo import MongoClient, DESCENDING
 import certifi
 from datetime import datetime, timedelta
 
-load_dotenv("mdp.env")
-uri = os.getenv("MONGO_URI")
+@st.cache_resource(show_spinner=False)
+def init_connection():
+    try:
+        uri = st.secrets["MONGO_URI"]
+    except KeyError:
+        st.error("Identifiants MongoDB introuvables.")
+        st.stop()
+    return MongoClient(uri, tlsCAFile=certifi.where())
 
-client = MongoClient(uri, tlsCAFile=certifi.where())
+
+client = init_connection()
 db = client['vacances_meteo']
 collection = db['destinations']
+
 
 
 def get_last_date_for_city(city_name):

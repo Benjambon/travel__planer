@@ -6,16 +6,22 @@ import requests
 from pymongo import MongoClient, ASCENDING
 import certifi
 from datetime import datetime
+import streamlit as st
 
-load_dotenv("mdp.env")
-uri = os.getenv("MONGO_URI")
+@st.cache_resource(show_spinner=False)
+def init_connection():
+    try:
+        uri = st.secrets["MONGO_URI"]
+    except KeyError:
+        st.error("Identifiants MongoDB introuvables.")
+        st.stop()
+    return MongoClient(uri, tlsCAFile=certifi.where())
 
-if not uri:
-    raise ValueError("MONGO_URI introuvable")
 
-client = MongoClient(uri, tlsCAFile=certifi.where())
+client = init_connection()
 db = client['vacances_meteo']
 collection = db['destinations']
+
 
 
 def setup_all_indexes():
