@@ -2,7 +2,7 @@
 
 Application web d'analyse de données météorologiques pour la recommandation de destinations de voyage.
 
-**Application déployée :** [Lien vers l'application](https://travelplaner-zbx4hfmxan49srm3z3daut.streamlit.app/)
+**Application déployée :** https://travelplaner-zbx4hfmxan49srm3z3daut.streamlit.app/ 
 
 ## Architecture du projet
 
