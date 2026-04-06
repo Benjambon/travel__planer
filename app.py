@@ -5,10 +5,8 @@ import certifi
 import numpy as np
 from datetime import datetime
 
-# --- 1. CONFIGURATION & SEO ---
 st.set_page_config(page_title="Travel Planner Big Data 2026", layout="wide")
 
-# Ajout du min-height: 100vh pour contrer le CLS (saut de scrollbar)
 st.markdown("""
     <meta name="description" content="Planificateur de voyage utilisant le Big Data pour prédire la météo 2026.">
     <style>
@@ -19,9 +17,7 @@ st.markdown("""
 WEATHER_MAP = {
     "Soleil": {"codes": [0, 1], "icon": "☀️"},
     "Nuageux": {"codes": [2, 3], "icon": "⛅"},
-    "Pluie": {"codes": [51, 53, 55, 61, 63, 65, 80, 81, 82], "icon": "🌧️"},
-    "Orage": {"codes": [95, 96, 99], "icon": "⚡"},
-    "Neige": {"codes": [71, 73, 75, 77, 85, 86], "icon": "❄️"}
+    "Pluie": {"codes": [51, 53, 55, 61, 63, 65, 80, 81, 82], "icon": "🌧️"}
 }
 
 
@@ -30,7 +26,7 @@ def init_connection():
     try:
         uri = st.secrets["MONGO_URI"]
     except KeyError:
-        st.error("Identifiants MongoDB introuvables. Configurez les secrets de votre environnement.")
+        st.error("Identifiants MongoDB introuvables.")
         st.stop()
     return MongoClient(uri, tlsCAFile=certifi.where())
 
@@ -39,8 +35,6 @@ client = init_connection()
 db = client['vacances_meteo']
 collection = db['destinations']
 
-
-# --- 2. LOGIQUE DE DONNÉES (ARCHITECTURE HAUTE PERF) ---
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_base_predictions(month_idx, selected_weathers):
@@ -99,10 +93,12 @@ def filter_and_score(base_data, temp_range):
     for city in base_data:
         if temp_range[0] <= city["Temp_2026"] <= temp_range[1]:
             temp_diff = abs(city["Temp_2026"] - target_temp)
-            score = (100 - (temp_diff * 3)) + (1 / (city['precip_avg'] + 1))
+
+            raw_score = (100 - (temp_diff * 3)) + (1 / (city['precip_avg'] + 1))
+            final_score = max(0.0, min(100.0, raw_score))
 
             city_copy = city.copy()
-            city_copy["Score"] = round(score, 1)
+            city_copy["Score"] = round(final_score, 1)
             filtered.append(city_copy)
 
     df = pd.DataFrame(filtered).sort_values(by="Score", ascending=False).reset_index(drop=True)
@@ -110,9 +106,7 @@ def filter_and_score(base_data, temp_range):
     return df
 
 
-# --- 3. INTERFACE UTILISATEUR ---
-
-st.title("🌍 Destination Idéale 2026 (Analyse Prédictive)")
+st.title("🌍 Destination Idéale 2026")
 
 with st.sidebar:
     st.header("🔍 Filtres")
@@ -122,7 +116,12 @@ with st.sidebar:
     with st.form("search_form"):
         mois_sel = st.selectbox("Mois du voyage", range(1, 13), format_func=lambda x: mois_noms[x - 1])
         temp_sel = st.slider("Température souhaitée (°C)", -5, 40, (18, 28))
-        weather_sel = st.multiselect("Météo", options=list(WEATHER_MAP.keys()), default=["Soleil", "Nuageux"])
+        weather_sel = st.multiselect(
+            "Météo",
+            options=list(WEATHER_MAP.keys()),
+            default=["Soleil", "Nuageux"],
+            format_func=lambda x: f"{WEATHER_MAP[x]['icon']} {x}"
+        )
         submitted = st.form_submit_button("Lancer la recherche 🚀")
 
     with st.spinner('Analyse Big Data en cours...'):
@@ -130,35 +129,40 @@ with st.sidebar:
 
 df_results = filter_and_score(base_data, temp_sel)
 
-# --- 4. AFFICHAGE DES RÉSULTATS ---
-
 if not df_results.empty:
     top_vane = df_results.iloc[0]
 
-    st.success(f"### 🏆 Recommandation n°1 pour {mois_noms[mois_sel - 1]} 2026 : **{top_vane['Ville']}**")
+    st.success(f"### Recommandation n°1 pour {mois_noms[mois_sel - 1]} 2026 : **{top_vane['Ville']}**")
 
     c1, c2, c3 = st.columns(3)
     c1.metric("Score de match", f"{top_vane['Score']}/100")
-    c2.metric("Temp. Prédite (2026)", f"{top_vane['Temp_2026']} °C", help="Régression linéaire sur 30 ans")
+    c2.metric("Temp. Prédite (2026)", f"{top_vane['Temp_2026']} °C")
     precip_mensuelle = top_vane['precip_avg'] * 30
-    c3.metric("Précipitations", f"{precip_mensuelle:.0f} mm/mois", help="Cumul mensuel estimé")
+    c3.metric("Précipitations", f"{precip_mensuelle:.0f} mm/mois")
 
     st.divider()
 
-    # SECTION 1 : CLASSEMENT
-    st.subheader("📋 Classement Complet")
+    st.subheader("Classement Complet")
     display_df = df_results[['Ville', 'Région', 'Temp_2026', 'Score']].copy()
-    st.dataframe(display_df, use_container_width=True, height=400)
+
+    st.dataframe(
+        display_df,
+        use_container_width=True,
+        height=400,
+        column_config={
+            "Ville": st.column_config.TextColumn(width="medium"),
+            "Région": st.column_config.TextColumn(width="large"),
+            "Temp_2026": st.column_config.NumberColumn(width="small"),
+            "Score": st.column_config.NumberColumn(width="small")
+        }
+    )
 
     st.divider()
 
-    # SECTION 2 : CARTE INTERACTIVE (LAZY LOADING ULTIME)
-    st.subheader("📍 Carte des destinations (Top 20)")
-    st.info("Pour des raisons de performance, la carte interactive nécessite d'être chargée manuellement.")
+    st.subheader("Carte des destinations")
 
     if st.button("🗺️ Afficher la carte Folium", key="btn_map"):
         with st.spinner("Génération de la carte..."):
-            # Importation paresseuse : Folium n'est chargé en mémoire QUE sur clic !
             import folium
             from streamlit_folium import st_folium
 
@@ -174,13 +178,11 @@ if not df_results.empty:
 
     st.divider()
 
-    # SECTION 3 : ANALYSE DES TENDANCES (LAZY LOADING ULTIME)
     st.subheader(f"📈 Tendance Historique du mois de {mois_noms[mois_sel - 1]}")
     ville_focus = st.selectbox("Analyser la tendance d'une ville précise :", options=df_results['Ville'])
 
     if st.button("📊 Générer le graphique interactif", key="btn_chart"):
         with st.spinner("Calcul des tendances..."):
-            # Importation paresseuse : Plotly n'est chargé en mémoire QUE sur clic !
             import plotly.graph_objects as go
 
             city_data = df_results[df_results['Ville'] == ville_focus].iloc[0]
@@ -202,4 +204,4 @@ if not df_results.empty:
             st.plotly_chart(fig, use_container_width=True)
 
 else:
-    st.warning("⚠️ Aucune destination ne correspond à vos critères prédictifs. Essayez d'ajuster la température.")
+    st.warning("Aucune destination ne correspond à vos critères prédictifs. Essayez d'ajuster la température.")
