@@ -115,11 +115,11 @@ with st.sidebar:
 
     with st.form("search_form"):
         mois_sel = st.selectbox("Mois du voyage", range(1, 13), format_func=lambda x: mois_noms[x - 1])
-        temp_sel = st.slider("Température souhaitée (°C)", -5, 40, (18, 28))
+        temp_sel = st.slider("Température souhaitée (°C)", -5, 40, (25, 30))
         weather_sel = st.multiselect(
             "Météo",
             options=list(WEATHER_MAP.keys()),
-            default=["Soleil", "Nuageux"],
+            default=["Soleil"],
             format_func=lambda x: f"{WEATHER_MAP[x]['icon']} {x}"
         )
         submitted = st.form_submit_button("Lancer la recherche 🚀")
@@ -202,6 +202,7 @@ if not df_results.empty:
             fig.update_layout(xaxis_title="Année", yaxis_title="Température (°C)", margin=dict(l=0, r=0, t=30, b=0),
                               height=400)
             st.plotly_chart(fig, use_container_width=True)
-
+    st.divider()
+    
 else:
     st.warning("Aucune destination ne correspond à vos critères prédictifs. Essayez d'ajuster la température.")
